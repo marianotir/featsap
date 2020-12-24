@@ -28,7 +28,7 @@ from sklearn.impute import SimpleImputer
 # Data Analysis
 #---------------------------------
 
-# Load  data
+# Load data
 filename = 'D:/Users/Mariano/Documents/Downloads/archive/BankChurners.csv'
 data_orig = read_csv(filename)
 
