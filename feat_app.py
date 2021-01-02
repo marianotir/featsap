@@ -20,7 +20,7 @@ from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
 
 #---------------------------------
-# Data Analysis
+# Load Data
 #---------------------------------
 
 # Load cleaned data
@@ -30,17 +30,21 @@ df = read_csv(filename)
 filename = 'C:/Users/Mariano/app_feats/data_clean.csv'
 df_orig = read_csv(filename)
 
-# drop unnecesary columns
+#---------------------------------
+# Prepare data 
+#---------------------------------
+
+# Drop unnecesary columns
 df = df.drop(columns=['Unnamed: 0', 'Key','Attrition_Flag'])
 y = df['Y']
 
-# get the list of categorical descriptive features
+# Get the list of categorical descriptive features
 categorical_cols = df.columns[df.dtypes==object].tolist()
 
-# encode categorical variables as one hot encoding
+# Encode categorical variables as one hot encoding
 df = pd.get_dummies(df)
 
-# encode target 
+# Encode target 
 target = y.values
 
 target = np.where(target<0.5, 0, target)
@@ -50,15 +54,15 @@ target = target.astype(int)
 
 np.unique(target, return_counts=True)
 
-# encode target using labelencoder from scikitlearn 
+# Encode target using labelencoder from scikitlearn 
 le = preprocessing.LabelEncoder()
 le_fit = le.fit(target)
 target_encoded_le = le_fit.transform(target)
 
-# get features from dataframe
+# Get features from dataframe
 df_feats = df.drop(columns=['Y'])
 
-# split train and test dataset 
+# Split train and test dataset 
 X_train, X_test, y_train, y_test = train_test_split(df_feats, target_encoded_le, test_size=0.2)
 
 
@@ -86,7 +90,6 @@ print("Columns selected are: {0}".
 # Model before and after feature engineering 
 #-----------------------------------------------
 
-
 # Model before feature engineering
 rf = RandomForestClassifier(max_depth=2, random_state=0)
 
@@ -109,7 +112,7 @@ print("Increase of accuracy on a simple model from {0} to {1}:".
       format(accuracy_norm_model, accuracy_trans_model))
 
 #-----------------------------------------------
-# Save resultin feats for further analysis
+# Save obtained feats for further analysis
 #-----------------------------------------------
 
 feats = columns_retained_FromMode.tolist()
