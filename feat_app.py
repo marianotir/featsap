@@ -9,46 +9,15 @@ Created on Wed Dec 16 16:28:59 2020
 # Import libraries
 #-------------------------------------
 
-import csv
-import xlrd
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from pandas import read_csv
-from numpy import loadtxt
-
-from pandas.plotting import scatter_matrix
-
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
-from sklearn import datasets, linear_model
 from sklearn import preprocessing
-from sklearn.feature_selection import RFE
-from sklearn.linear_model import LogisticRegression
-from sklearn.decomposition import PCA
-
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import warnings
-from sklearn.decomposition import PCA
-from sklearn.feature_selection import RFE
-from sklearn.feature_selection import RFECV
-from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, f1_score
-from sklearn.metrics import f1_score,confusion_matrix
-from sklearn.model_selection import train_test_split
-
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import  RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
-
-
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.feature_selection import SelectFromModel
+from sklearn import metrics
+from sklearn.ensemble import RandomForestClassifier
 
 #---------------------------------
 # Data Analysis
@@ -58,8 +27,11 @@ from sklearn.metrics import mean_squared_error
 filename = 'C:/Users/Mariano/app_feats/data_clean.csv'
 df = read_csv(filename)
 
+filename = 'C:/Users/Mariano/app_feats/data_clean.csv'
+df_orig = read_csv(filename)
+
 # drop unnecesary columns
-df = df.drop(columns=['Unnamed: 0', 'Key'])
+df = df.drop(columns=['Unnamed: 0', 'Key','Attrition_Flag'])
 y = df['Y']
 
 # get the list of categorical descriptive features
@@ -90,18 +62,61 @@ df_feats = df.drop(columns=['Y'])
 X_train, X_test, y_train, y_test = train_test_split(df_feats, target_encoded_le, test_size=0.2)
 
 
-k_limit = 5
-select_feature = SelectKBest(chi2, k=k_limit).fit(X_train, y_train)
+#-----------------------------------------------
+# Decision tree feature selection 
+#-----------------------------------------------
 
-selected_features_df = pd.DataFrame({'Feature':list(X_train.columns),
-                                     'Scores':select_feature.scores_})
-df_score = selected_features_df.sort_values(by='Scores', ascending=False)
+clf = DecisionTreeClassifier()
+clf.fit(X_train, y_train)
 
-select_feature.scores_
+trans = SelectFromModel(clf)
+X_trans = trans.fit_transform(X_train, y_train)
+test_trans = trans.fit_transform(X_test, y_test)
 
-df_feats_selected = df_score.iloc[0:k_limit]
+print("We started with {0} features but retained only {1} of them!".
+      format(X_train.shape[1], X_trans.shape[1]))
 
-features = df_feats_selected['Feature'].values
+columns_retained_FromMode = df.iloc[:, 1:].columns[trans.get_support()].values
 
-print('features selected:', features)
+print("Columns selected are: {0}".
+      format(columns_retained_FromMode))
+
+
+#-----------------------------------------------
+# Model before and after feature engineering 
+#-----------------------------------------------
+
+
+# Model before feature engineering
+rf = RandomForestClassifier(max_depth=2, random_state=0)
+
+rf.fit(X_train, y_train)
+
+prediction = rf.predict(X_test)
+
+accuracy_norm_model = metrics.accuracy_score(y_test, prediction)
+
+# Model after feature engineering
+rf_trans = RandomForestClassifier(max_depth=2, random_state=0)
+
+rf_trans.fit(X_trans, y_train)
+
+prediction_trans = rf_trans.predict(test_trans)
+
+accuracy_trans_model = metrics.accuracy_score(y_test, prediction_trans)
+
+print("Increase of accuracy on a simple model from {0} to {1}:".
+      format(accuracy_norm_model, accuracy_trans_model))
+
+#-----------------------------------------------
+# Save resultin feats for further analysis
+#-----------------------------------------------
+
+feats = columns_retained_FromMode.tolist()
+
+data_feats = pd.DataFrame(data={"feats": feats})
+
+data_feats.to_csv('C:/Users/Mariano/app_feats/feats.csv')
+
+
 
